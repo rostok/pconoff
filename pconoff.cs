@@ -29,12 +29,8 @@ namespace EventLogParser {
 
             foreach (Event ev in events) {
                 if (ev.OnOff == "On") {
-                    if (currentPeriod.start == DateTime.MinValue) {
+                    if (currentPeriod.start == DateTime.MinValue) 
                         currentPeriod.start = ev.Date;
-                    } else {
-                        //periods.Add(currentPeriod);
-                        //currentPeriod = (ev.Date, DateTime.MinValue);
-                    }
                 } else {
                     if (currentPeriod.start != DateTime.MinValue) {
                         currentPeriod.stop = ev.Date;
@@ -153,11 +149,6 @@ namespace EventLogParser {
 
                     row.Cells.Add(dateCell);
                     dateCell = new DataGridViewTextBoxCell();
-                    //			dateCell.Value = "x";
-                    //            row.Cells.Add(dateCell);
-
-                    //            var periodCell = new DataGridViewCell();
-                    //            row.Cells[1] = periodCell;
                     this.Rows.Add(row);
                 }
             }
@@ -174,7 +165,6 @@ namespace EventLogParser {
                 var row = this.Rows[e.RowIndex];
                 var date = (string) row.Cells[0].Value;
 
-                //row.Cells[1].Value = "";
                 var rects = new List<Rectangle>();
                 Point mousePos = this.PointToClient(Control.MousePosition);
                 Rectangle selectedRect = new Rectangle();
@@ -184,7 +174,6 @@ namespace EventLogParser {
 
                     var width = (period.stop - period.start).TotalMilliseconds / (24 * 60 * 60 * 1000);
                     var left = (period.start.Hour * 60 + period.start.Minute) / (24 * 60.0f);
-                    //            var left = (period.start - period.start.Date).TotalMilliseconds / (24 * 60 * 60 * 1000); 
 
                     var rect = new Rectangle(
                         (int) (e.CellBounds.Left + e.CellBounds.Width * left),
@@ -194,16 +183,13 @@ namespace EventLogParser {
 
                     rects.Add(rect);
                     e.Graphics.FillRectangle(Brushes.LightBlue, rect);
-                    //            e.Graphics.DrawRectangle(new Pen(Brushes.Black), rect);
                     if (rect.Contains(mousePos)) {
                         e.Graphics.FillRectangle(Brushes.DeepSkyBlue, rect);
                         selectedRect = rect;
                         selectedText = $"{period.start.Hour}:{period.start.Minute} / {period.stop.Hour}:{period.stop.Minute}";
                     }
-
-                    //row.Cells[1].Value += period.start.ToString();
                 }
-                //        e.Graphics.FillRectangles(Brushes.LightBlue, rects.ToArray());
+
                 e.Graphics.DrawRectangles(new Pen(Brushes.Black), rects.ToArray());
 
                 if (selectedRect.Width > 0) {
@@ -298,7 +284,7 @@ namespace EventLogParser {
             if (args.Contains("-t"))
                 MakeHTML(periods);
 
-            if (!args.Contains("-t"))
+            if (!args.Contains("-t")&&!args.Contains("-c"))
                 CreateDataGridView(periods);
         }
     }
