@@ -6,11 +6,13 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using System.Reflection;
+using System.Diagnostics;
+using System.Security.Principal;
 
 [assembly : AssemblyTitle("PCONOFF")]
 [assembly : AssemblyCompany("rostok - https://github.com/rostok/")]
-[assembly : AssemblyVersion("1.0.1.0")]
-[assembly : AssemblyFileVersion("1.0.1.0")]
+[assembly : AssemblyVersion("1.0.2.0")]
+[assembly : AssemblyFileVersion("1.0.2.0")]
 
 namespace EventLogParser {
     class Event {
@@ -33,6 +35,38 @@ namespace EventLogParser {
     }
 
     class Program {
+
+        public static bool IsElevated()
+        {
+            WindowsIdentity identity = WindowsIdentity.GetCurrent();
+            WindowsPrincipal principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
+        public static bool Elevate()
+        {
+            if (!IsElevated())
+            {
+                ProcessStartInfo startInfo = new ProcessStartInfo();
+                startInfo.UseShellExecute = true;
+                startInfo.WorkingDirectory = Environment.CurrentDirectory;
+                startInfo.FileName = Process.GetCurrentProcess().MainModule.FileName;
+                startInfo.Verb = "runas";
+                startInfo.Arguments = Environment.CommandLine;
+
+                try
+                {
+                    Process.Start(startInfo);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                    return false;
+                }
+            }
+            return true;
+        }
 
         static List<Event> GetEvents(DateTime start, DateTime now) {
             List<Event> events = new List<Event>();
@@ -206,6 +240,11 @@ namespace EventLogParser {
                 this.Columns.Add("Periods", "Periods");
                 this.Columns[1].Width = this.Width * 9 / 10;
                 this.Columns[1].DefaultCellStyle.BackColor = Color.White;
+
+                // this.Columns.Add("Hrs", "Hrs");
+                // this.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
+                // this.Columns[2].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+
                 this.RowTemplate.Height = 20;
                 this.AllowUserToAddRows = false;
 
@@ -220,6 +259,11 @@ namespace EventLogParser {
                     dateCell.Value = date;
 
                     row.Cells.Add(dateCell);
+
+                    // row.Cells.Add(new DataGridViewTextBoxCell());
+                    // row.Cells.Add(new DataGridViewTextBoxCell());
+                    // row.Cells[2].Value = "x";
+
                     dateCell = new DataGridViewTextBoxCell();
                     this.Rows.Add(row);
                 }
@@ -283,6 +327,7 @@ namespace EventLogParser {
             Form form = new Form();
             form.Text = "PCOnOff";
             form.WindowState = FormWindowState.Maximized;
+            form.Icon = System.Drawing.Icon.ExtractAssociatedIcon(Application.ExecutablePath);
 
             PeriodDataGridView dgv = new PeriodDataGridView(periods);
             dgv.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill;
@@ -294,7 +339,7 @@ namespace EventLogParser {
                 dgv.Columns[1].Width = form.Width * 9 / 10;
             };
 
-            dgv.CurrentCell = dgv[1, dgv.RowCount - 1];
+            if (dgv.RowCount>0) dgv.CurrentCell = dgv[1, dgv.RowCount - 1];
 
             EventHandler Init = new EventHandler((sender, args) => { });
 
@@ -317,6 +362,11 @@ namespace EventLogParser {
                 Console.WriteLine(" -t      will generate periods.js and table.html & will NOT show gird");
                 Console.WriteLine("");
                 Console.WriteLine("this comes with MIT license from rostok - https://github.com/rostok/");
+                return;
+            }
+
+            if (!IsElevated()) {
+                Elevate();
                 return;
             }
 

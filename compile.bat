@@ -1,0 +1,1 @@
+﻿csc /debug+ /win32icon:pconofficon.ico pconoff.cs
