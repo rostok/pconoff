@@ -11,8 +11,8 @@ using System.Security.Principal;
 
 [assembly : AssemblyTitle("PCONOFF")]
 [assembly : AssemblyCompany("rostok - https://github.com/rostok/")]
-[assembly : AssemblyVersion("1.0.2.0")]
-[assembly : AssemblyFileVersion("1.0.2.0")]
+[assembly : AssemblyVersion("1.0.3.0")]
+[assembly : AssemblyFileVersion("1.0.3.0")]
 
 namespace EventLogParser {
     class Event {
@@ -241,14 +241,28 @@ namespace EventLogParser {
                 this.Columns[1].Width = this.Width * 9 / 10;
                 this.Columns[1].DefaultCellStyle.BackColor = Color.White;
 
-                // this.Columns.Add("Hrs", "Hrs");
-                // this.Columns[2].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCells;
-                // this.Columns[2].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                periods.Select(p => p.Comment).Distinct().ToList().ForEach( c=> {
+                    this.Columns.Add(c, c);
+                    this.Columns[this.Columns.Count-1].AutoSizeMode = DataGridViewAutoSizeColumnMode.AllCellsExceptHeader;
+                    this.Columns[this.Columns.Count-1].DefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleRight;
+                });
 
                 this.RowTemplate.Height = 20;
                 this.AllowUserToAddRows = false;
 
-				var uniqueDates = new HashSet<string>(periods.Select(p=>p.Start.ToString("yyyy-MM-dd")));
+                var uniqueDates = new HashSet<string>(periods.Select(p=>p.Start.ToString("yyyy-MM-dd")));
+                var hoursByDateAndComment = new Dictionary<string, double>();
+
+                foreach (Period period in periods)
+                {
+                    double durationHours = (period.Stop - period.Start).TotalHours;
+                    string key = period.Start.ToString("yyyy-MM-dd") + "-" + period.Comment;
+
+                    if (hoursByDateAndComment.ContainsKey(key))
+                        hoursByDateAndComment[key] += durationHours;
+                    else
+                        hoursByDateAndComment.Add(key, durationHours);
+                }
 
                 MouseMove += (object sender, MouseEventArgs e) => { Invalidate(); };
 
@@ -259,10 +273,14 @@ namespace EventLogParser {
                     dateCell.Value = date;
 
                     row.Cells.Add(dateCell);
+                    row.Cells.Add(new DataGridViewTextBoxCell());
 
-                    // row.Cells.Add(new DataGridViewTextBoxCell());
-                    // row.Cells.Add(new DataGridViewTextBoxCell());
-                    // row.Cells[2].Value = "x";
+                    Columns.Cast<DataGridViewColumn>().Skip(2).ToList().ForEach(c=>{
+                        row.Cells.Add(new DataGridViewTextBoxCell());
+                        string key = date + "-" + c.Name;
+                        if (hoursByDateAndComment.ContainsKey(key))
+                            row.Cells[c.Index].Value = hoursByDateAndComment[key].ToString("0.0");
+                    });
 
                     dateCell = new DataGridViewTextBoxCell();
                     this.Rows.Add(row);
@@ -310,7 +328,6 @@ namespace EventLogParser {
                 }
 
                 //e.Graphics.DrawRectangles(new Pen(Brushes.Black), rects.ToArray());
-
                 
                 if (selectedRect.Width > 0) {
                     Font font = new Font("Arial Narrow", 10);
